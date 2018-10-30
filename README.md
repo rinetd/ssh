@@ -6,10 +6,10 @@
 以及文件,文件夹的上传,下载等操作.
 
 文件上传下载模仿rsync方式: 只和源有关.
-// rsync -av src/ dst     ./src/* --> /root/dst/*
-// rsync -av src/ dst/    ./src/* --> /root/dst/*
-// rsync -av src  dst     ./src/* --> /root/dst/src/*
-// rsync -av src  dst/    ./src/* --> /root/dst/src/*
+// rsync -av src/ dst     ./src/* --> /root/dst/*  
+// rsync -av src/ dst/    ./src/* --> /root/dst/*  
+// rsync -av src  dst     ./src/* --> /root/dst/src/*  
+// rsync -av src  dst/    ./src/* --> /root/dst/src/*  
 
 ## Example
 
