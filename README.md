@@ -5,7 +5,7 @@
 本项目是对标准库进行一个简单的高层封装,使得可以在在 Windows Linux Mac 上非常容易的执行 ssh 命令,
 以及文件,文件夹的上传,下载等操作.
 
-文件上传下载模仿rsync方式: 只和源有关.
+文件上传下载模仿rsync方式: 只和源有关.  
 // rsync -av src/ dst     ./src/* --> /root/dst/*  
 // rsync -av src/ dst/    ./src/* --> /root/dst/*  
 // rsync -av src  dst     ./src/* --> /root/dst/src/*  
