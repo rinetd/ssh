@@ -5,12 +5,14 @@ import (
 )
 
 type Config struct {
-	User     string
-	Host     string
-	Port     int
-	Password string
-	KeyFiles []string
+	User       string
+	Host       string
+	Port       int
+	Password   string
+	KeyFiles   []string
+	Passphrase string
 
+	StickySession bool
 	// DisableAgentForwarding, if true, will not forward the SSH agent.
 	DisableAgentForwarding bool
 

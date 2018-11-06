@@ -11,6 +11,8 @@
 // rsync -av src  dst     ./src/* --> /root/dst/src/*  
 // rsync -av src  dst/    ./src/* --> /root/dst/src/*  
 
+## Install
+`go get github.com/pytool/ssh`
 ## Example
 
 ### 在远程执行ssh命令

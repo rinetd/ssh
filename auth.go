@@ -14,6 +14,23 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
+//HasAgent reports whether the SSH agent is available
+func HasAgent() bool {
+	authsock, ok := os.LookupEnv("SSH_AUTH_SOCK")
+	if !ok {
+		return false
+	}
+	if dirent, err := os.Stat(authsock); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+		if dirent.Mode()&os.ModeSocket == 0 {
+			return false
+		}
+	}
+	return true
+}
+
 // An implementation of ssh.KeyboardInteractiveChallenge that simply sends
 // back the password for all questions. The questions are logged.
 func passwordKeyboardInteractive(password string) ssh.KeyboardInteractiveChallenge {
@@ -48,7 +65,7 @@ func WithPassword(password string) (ssh.AuthMethod, error) {
 // WithAgent use already authed user
 func WithAgent() (ssh.AuthMethod, error) {
 	sock := os.Getenv("SSH_AUTH_SOCK")
-	if sock != "" {
+	if sock == "" {
 		// fmt.Println(errors.New("Agent Disabled"))
 		return nil, errors.New("Agent Disabled")
 	}
@@ -72,23 +89,28 @@ func WithAgent() (ssh.AuthMethod, error) {
 	// return nil
 }
 
-// WithPrivateKeys 设置多个 ~/.ssh/id_rsa
-func WithPrivateKeys(keyFiles []string, password string) (ssh.AuthMethod, error) {
+// WithPrivateKeys 设置多个 ~/.ssh/id_rsa ,如果加密用passphrase尝试
+func WithPrivateKeys(keyFiles []string, passphrase string) (ssh.AuthMethod, error) {
 	var signers []ssh.Signer
 
 	for _, key := range keyFiles {
 
-		buffer, err := ioutil.ReadFile(key)
+		pemBytes, err := ioutil.ReadFile(key)
 		if err != nil {
 			println(err.Error())
 			// return
 		}
-		signer, err := ssh.ParsePrivateKeyWithPassphrase([]byte(buffer), []byte(password))
+		signer, err := ssh.ParsePrivateKey([]byte(pemBytes))
 		if err != nil {
-			println(err.Error())
-		} else {
-			signers = append(signers, signer)
+			if strings.Contains(err.Error(), "cannot decode encrypted private keys") {
+				if signer, err = ssh.ParsePrivateKeyWithPassphrase(pemBytes, []byte(passphrase)); err != nil {
+					continue
+				}
+			}
+			// println(err.Error())
 		}
+		signers = append(signers, signer)
+
 	}
 	if signers == nil {
 		return nil, errors.New("WithPrivateKeys: no keyfiles input")
@@ -97,7 +119,7 @@ func WithPrivateKeys(keyFiles []string, password string) (ssh.AuthMethod, error)
 }
 
 // WithPrivateKey 自动监测是否带有密码
-func WithPrivateKey(keyfile string, password string) (ssh.AuthMethod, error) {
+func WithPrivateKey(keyfile string, passphrase string) (ssh.AuthMethod, error) {
 	pemBytes, err := ioutil.ReadFile(keyfile)
 	if err != nil {
 		println(err.Error())
@@ -108,12 +130,15 @@ func WithPrivateKey(keyfile string, password string) (ssh.AuthMethod, error) {
 	signer, err = ssh.ParsePrivateKey(pemBytes)
 	if err != nil {
 		if strings.Contains(err.Error(), "cannot decode encrypted private keys") {
-			if signer, err = ssh.ParsePrivateKeyWithPassphrase(pemBytes, []byte(password)); err == nil {
+			signer, err = ssh.ParsePrivateKeyWithPassphrase(pemBytes, []byte(passphrase))
+			if err == nil {
 				return ssh.PublicKeys(signer), nil
 			}
 		}
+		return nil, err
 	}
-	return nil, err
+	return ssh.PublicKeys(signer), nil
+
 }
 
 // WithPrivateKeyString 直接通过字符串
@@ -134,27 +159,30 @@ func WithPrivateKeyString(key string, password string) (ssh.AuthMethod, error) {
 
 // WithPrivateKeyTerminal 通过终端读取带密码的 PublicKey
 func WithPrivateKeyTerminal(keyfile string) (ssh.AuthMethod, error) {
-	// fmt.Fprintf(os.Stderr, "This SSH key is encrypted. Please enter passphrase for key '%s':", priv.path)
-	passphrase, err := terminal.ReadPassword(int(syscall.Stdin))
-	if err != nil {
-		println(err.Error())
-		return nil, err
-	}
-
-	fmt.Fprintln(os.Stderr)
-
 	pemBytes, err := ioutil.ReadFile(keyfile)
 	if err != nil {
 
 		println(err.Error())
 		return nil, err
 	}
-	signer, err := ssh.ParsePrivateKeyWithPassphrase(pemBytes, passphrase)
-	if err != nil {
 
-		fmt.Println(err)
+	var signer ssh.Signer
+	signer, err = ssh.ParsePrivateKey(pemBytes)
+	if err != nil {
+		if strings.Contains(err.Error(), "cannot decode encrypted private keys") {
+
+			fmt.Fprintf(os.Stderr, "This SSH key is encrypted. Please enter passphrase for key '%s':", keyfile)
+			passphrase, err := terminal.ReadPassword(int(syscall.Stdin))
+			if err != nil {
+				// println(err.Error())
+				return nil, err
+			}
+			fmt.Fprintln(os.Stderr)
+			if signer, err = ssh.ParsePrivateKeyWithPassphrase(pemBytes, []byte(passphrase)); err == nil {
+				return ssh.PublicKeys(signer), nil
+			}
+		}
 		return nil, err
 	}
-
 	return ssh.PublicKeys(signer), nil
 }
