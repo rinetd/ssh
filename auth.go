@@ -52,18 +52,18 @@ func passwordKeyboardInteractive(password string) ssh.KeyboardInteractiveChallen
 	}
 }
 
-// WithKeyboardPassword Generate a password-auth'd ssh ClientConfig
-func WithKeyboardPassword(password string) (ssh.AuthMethod, error) {
+// AuthWithKeyboardPassword Generate a password-auth'd ssh ClientConfig
+func AuthWithKeyboardPassword(password string) (ssh.AuthMethod, error) {
 	return ssh.KeyboardInteractive(passwordKeyboardInteractive(password)), nil
 }
 
-// WithPassword Generate a password-auth'd ssh ClientConfig
-func WithPassword(password string) (ssh.AuthMethod, error) {
+// AuthWithPassword Generate a password-auth'd ssh ClientConfig
+func AuthWithPassword(password string) (ssh.AuthMethod, error) {
 	return ssh.Password(password), nil
 }
 
-// WithAgent use already authed user
-func WithAgent() (ssh.AuthMethod, error) {
+// AuthWithAgent use already authed user
+func AuthWithAgent() (ssh.AuthMethod, error) {
 	sock := os.Getenv("SSH_AUTH_SOCK")
 	if sock == "" {
 		// fmt.Println(errors.New("Agent Disabled"))
@@ -89,8 +89,8 @@ func WithAgent() (ssh.AuthMethod, error) {
 	// return nil
 }
 
-// WithPrivateKeys 设置多个 ~/.ssh/id_rsa ,如果加密用passphrase尝试
-func WithPrivateKeys(keyFiles []string, passphrase string) (ssh.AuthMethod, error) {
+// AuthWithPrivateKeys 设置多个 ~/.ssh/id_rsa ,如果加密用passphrase尝试
+func AuthWithPrivateKeys(keyFiles []string, passphrase string) (ssh.AuthMethod, error) {
 	var signers []ssh.Signer
 
 	for _, key := range keyFiles {
@@ -118,8 +118,8 @@ func WithPrivateKeys(keyFiles []string, passphrase string) (ssh.AuthMethod, erro
 	return ssh.PublicKeys(signers...), nil
 }
 
-// WithPrivateKey 自动监测是否带有密码
-func WithPrivateKey(keyfile string, passphrase string) (ssh.AuthMethod, error) {
+// AuthWithPrivateKey 自动监测是否带有密码
+func AuthWithPrivateKey(keyfile string, passphrase string) (ssh.AuthMethod, error) {
 	pemBytes, err := ioutil.ReadFile(keyfile)
 	if err != nil {
 		println(err.Error())
@@ -141,8 +141,8 @@ func WithPrivateKey(keyfile string, passphrase string) (ssh.AuthMethod, error) {
 
 }
 
-// WithPrivateKeyString 直接通过字符串
-func WithPrivateKeyString(key string, password string) (ssh.AuthMethod, error) {
+// AuthWithPrivateKeyString 直接通过字符串
+func AuthWithPrivateKeyString(key string, password string) (ssh.AuthMethod, error) {
 	var signer ssh.Signer
 	var err error
 	if password == "" {
@@ -157,8 +157,8 @@ func WithPrivateKeyString(key string, password string) (ssh.AuthMethod, error) {
 	return ssh.PublicKeys(signer), nil
 }
 
-// WithPrivateKeyTerminal 通过终端读取带密码的 PublicKey
-func WithPrivateKeyTerminal(keyfile string) (ssh.AuthMethod, error) {
+// AuthWithPrivateKeyTerminal 通过终端读取带密码的 PublicKey
+func AuthWithPrivateKeyTerminal(keyfile string) (ssh.AuthMethod, error) {
 	pemBytes, err := ioutil.ReadFile(keyfile)
 	if err != nil {
 

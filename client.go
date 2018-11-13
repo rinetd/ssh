@@ -35,11 +35,11 @@ func New(cnf *Config) (client *Client, err error) {
 	// 1. privite key file
 	if len(cnf.KeyFiles) == 0 {
 		keyPath := os.Getenv("HOME") + "/.ssh/id_rsa"
-		if auth, err := WithPrivateKey(keyPath, cnf.Passphrase); err == nil {
+		if auth, err := AuthWithPrivateKey(keyPath, cnf.Passphrase); err == nil {
 			clientConfig.Auth = append(clientConfig.Auth, auth)
 		}
 	} else {
-		if auth, err := WithPrivateKeys(cnf.KeyFiles, cnf.Passphrase); err == nil {
+		if auth, err := AuthWithPrivateKeys(cnf.KeyFiles, cnf.Passphrase); err == nil {
 			clientConfig.Auth = append(clientConfig.Auth, auth)
 		}
 	}
@@ -48,7 +48,7 @@ func New(cnf *Config) (client *Client, err error) {
 		clientConfig.Auth = append(clientConfig.Auth, ssh.Password(cnf.Password))
 	}
 	// 3. agent 模式放在最后,这样当前两者都不能使用时可以采用Agent模式
-	if auth, err := WithAgent(); err == nil {
+	if auth, err := AuthWithAgent(); err == nil {
 		clientConfig.Auth = append(clientConfig.Auth, auth)
 	}
 
@@ -94,7 +94,7 @@ func NewWithAgent(Host, Port, User string) (client *Client, err error) {
 		Timeout:         DefaultTimeout,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
-	auth, err := WithAgent()
+	auth, err := AuthWithAgent()
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func NewWithAgent(Host, Port, User string) (client *Client, err error) {
 
 	// create sftp client
 	var sftpClient *sftp.Client
-	if sftpClient, err = sftp.NewClient(sshClient); err != nil {
+	if sftpClient, err = sftp.NewClient(sshClient, sftp.MaxPacket(10240000)); err != nil {
 		return client, errors.New("Failed to conn sftp: " + err.Error())
 	}
 	return &Client{SSHClient: sshClient, SFTPClient: sftpClient}, nil
@@ -122,7 +122,7 @@ func NewWithPrivateKey(Host, Port, User, Passphrase string) (client *Client, err
 	}
 	// 3. privite key file
 	keyPath := os.Getenv("HOME") + "/.ssh/id_rsa"
-	auth, err := WithPrivateKey(keyPath, Passphrase)
+	auth, err := AuthWithPrivateKey(keyPath, Passphrase)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err

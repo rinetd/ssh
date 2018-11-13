@@ -39,7 +39,7 @@ func (c *Client) RunScript(scriptPath string) ([]byte, error) {
 	defer session.Close()
 
 	// 1. 上传 script
-	remotePath := fmt.Sprintf("/tmp/%s", filepath.Base(scriptPath))
+	remotePath := fmt.Sprintf("/tmp/script/%s", filepath.Base(scriptPath))
 	if err := c.UploadFile(scriptPath, remotePath); err != nil {
 		return nil, err
 	}

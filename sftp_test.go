@@ -12,7 +12,7 @@ func GetClient() *Client {
 		err  error
 	)
 	once.Do(func() {
-		c, err = NewClient("root", "localhost", "22", "ubuntu")
+		c, err = NewClient("localhost", "22", "root", "ubuntu")
 	})
 	if err != nil {
 		panic(err)

@@ -6,7 +6,7 @@ import (
 
 func main() {
 
-	client, err := ssh.NewClient("root", "localhost", "22", "ubuntu")
+	client, err := ssh.NewClient("localhost", "22", "root", "ubuntu")
 	if err != nil {
 		panic(err)
 	}

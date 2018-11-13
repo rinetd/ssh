@@ -4,13 +4,15 @@
 
 本项目是对标准库进行一个简单的高层封装,使得可以在在 Windows Linux Mac 上非常容易的执行 ssh 命令,
 以及文件,文件夹的上传,下载等操作.
-
-文件上传下载模仿rsync方式: 只和源有关.  
+1. 当src 为目录时
+文件上传下载模仿rsync: 只和源有关.  
 // rsync -av src/ dst     ./src/* --> /root/dst/*  
 // rsync -av src/ dst/    ./src/* --> /root/dst/*  
 // rsync -av src  dst     ./src/* --> /root/dst/src/*  
 // rsync -av src  dst/    ./src/* --> /root/dst/src/*  
-
+2. 当src 为文件时
+当dst为目录，以"/"结尾，则自动拼接上文件名
+当dst为文件，不以“/”结尾时，则重命名文件
 ## Install
 `go get github.com/pytool/ssh`
 ## Example
@@ -24,7 +26,7 @@ import (
 )
 func main() {
 
-	c, err := ssh.NewClient("root", "localhost", "22", "ubuntu")
+	c, err := ssh.NewClient("localhost", "22", "root", "ubuntu")
 	if err != nil {
 		panic(err)
 	}
@@ -49,7 +51,7 @@ import (
 
 func main() {
 
-	client, err := ssh.NewClient("root", "localhost", "22", "ubuntu")
+	client, err := ssh.NewClient( "localhost", "22", "root", "ubuntu")
 	if err != nil {
 		panic(err)
 	}
@@ -77,7 +79,7 @@ import (
 
 func main() {
 
-	client, err := ssh.NewClient("root", "localhost", "22", "ubuntu")
+	client, err := ssh.NewClient( "localhost", "22", "root", "ubuntu")
 	if err != nil {
 		panic(err)
 	}

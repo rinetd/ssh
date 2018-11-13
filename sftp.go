@@ -1,8 +1,8 @@
 package ssh
 
 import (
+	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -22,9 +22,10 @@ func (c *Client) Upload(local string, remote string) (err error) {
 
 	info, err := os.Stat(local)
 	if err != nil {
-		return errors.New("本地文件不存在或格式错误 Upload(\"" + local + "\") 跳过上传")
+		return errors.New("sftp: 跳过上传 Upload(\"" + local + "\") ,本地文件不存在或格式错误!")
 	}
 	if info.IsDir() {
+		log.Println("sftp: UploadDir", local)
 		return c.UploadDir(local, remote)
 	}
 	return c.UploadFile(local, remote)
@@ -33,7 +34,7 @@ func (c *Client) Upload(local string, remote string) (err error) {
 // Download 下载sftp远程文件 remote 到本地 local like rsync
 func (c *Client) Download(remote string, local string) (err error) {
 	if c.IsNotExist(strings.TrimSuffix(remote, "/")) {
-		return errors.New("文件不存在,跳过文件下载 \"" + remote + "\" ")
+		return errors.New("sftp: 远程文件不存在,跳过文件下载 \"" + remote + "\" ")
 	}
 	if c.IsDir(remote) {
 		// return errors.New("检测到远程是文件不是目录 \"" + remote + "\" 跳过下载")
@@ -48,7 +49,7 @@ func (c *Client) Download(remote string, local string) (err error) {
 func (c *Client) downloadFile(remoteFile, local string) error {
 	// remoteFile = strings.TrimSuffix(remoteFile, "/")
 	if !c.IsFile(remoteFile) {
-		return errors.New("文件不存在或不是文件, 跳过目录下载 downloadFile(" + remoteFile + ")")
+		return errors.New("sftp: 文件不存在或不是文件, 跳过目录下载 downloadFile(" + remoteFile + ")")
 	}
 	var localFile string
 	if local[len(local)-1] == '/' {
@@ -56,9 +57,22 @@ func (c *Client) downloadFile(remoteFile, local string) error {
 	} else {
 		localFile = local
 	}
-
+	if c.Size(remoteFile) > 1000 {
+		rsum := c.Md5File(remoteFile)
+		ioutil.WriteFile(localFile+".md5", []byte(rsum), 755)
+		if FileExist(localFile) {
+			// 1. 检测远程是否存在
+			if rsum != "" {
+				lsum, _ := Md5File(localFile)
+				if lsum == rsum {
+					log.Println("sftp: 文件与本地一致，跳过上传！", localFile)
+					return nil
+				}
+			}
+		}
+	}
 	if err := os.MkdirAll(filepath.Dir(localFile), os.ModePerm); err != nil {
-		// fmt.Println(err)
+		// log.Println(err)
 		return err
 	}
 
@@ -87,7 +101,7 @@ func (c *Client) downloadDir(remote, local string) error {
 	var localDir, remoteDir string
 
 	if !c.IsDir(remote) {
-		return errors.New("目录不存在或不是目录, 跳过 downloadDir(" + remote + ")")
+		return errors.New("sftp: 目录不存在或不是目录, 跳过 downloadDir(" + remote + ")")
 	}
 	remoteDir = remote
 	if remote[len(remote)-1] == '/' {
@@ -100,7 +114,7 @@ func (c *Client) downloadDir(remote, local string) error {
 
 	for walker.Step() {
 		if err := walker.Err(); err != nil {
-			fmt.Fprintln(os.Stderr, err)
+			log.Println(err)
 			continue
 		}
 
@@ -152,9 +166,10 @@ func (c *Client) downloadDir(remote, local string) error {
 //UploadFile 上传本地文件 localFile 到sftp远程目录 remote
 func (c *Client) UploadFile(localFile, remote string) error {
 	// localFile = strings.TrimSuffix(localFile, "/")
+	// localFile = filepath.ToSlash(localFile)
 	info, err := os.Stat(localFile)
 	if err != nil || info.IsDir() {
-		return errors.New("本地文件不存在,或是不是文件 UploadFile(\"" + localFile + "\") 跳过上传")
+		return errors.New("sftp: 本地文件不存在,或是不是文件 UploadFile(\"" + localFile + "\") 跳过上传")
 	}
 
 	l, err := os.Open(localFile)
@@ -165,15 +180,28 @@ func (c *Client) UploadFile(localFile, remote string) error {
 
 	var remoteFile, remoteDir string
 	if remote[len(remote)-1] == '/' {
-		remoteFile = filepath.Join(remote, filepath.Base(localFile))
+		remoteFile = filepath.ToSlash(filepath.Join(remote, filepath.Base(localFile)))
 		remoteDir = remote
 	} else {
 		remoteFile = remote
-		remoteDir = filepath.Dir(remoteFile)
+		remoteDir = filepath.ToSlash(filepath.Dir(remoteFile))
+	}
+	log.Println("sftp: UploadFile", localFile, remoteFile)
+	if info.Size() > 1000 {
+		// 1. 检测远程是否存在
+		rsum := c.Md5File(remoteFile)
+		if rsum != "" {
+			lsum, _ := Md5File(localFile)
+			if lsum == rsum {
+				log.Println("sftp: 文件与本地一致，跳过上传！", localFile)
+				return nil
+			}
+		}
 	}
 
 	// 目录不存在,则创建 remoteDir
 	if _, err := c.SFTPClient.Stat(remoteDir); err != nil {
+		log.Println("sftp: Mkdir all", remoteDir)
 		c.MkdirAll(remoteDir)
 	}
 
@@ -194,16 +222,17 @@ func (c *Client) UploadDir(localDir string, remoteDir string) (err error) {
 	// 	}
 	// }()
 	// 本地输入检测,必须是目录
+	// localDir = filepath.ToSlash(localDir)
 	info, err := os.Stat(localDir)
 	if err != nil || !info.IsDir() {
-		return errors.New("本地目录不存在或不是目录 UploadDir(\"" + localDir + "\") 跳过上传")
+		return errors.New("sftp: 本地目录不存在或不是目录 UploadDir(\"" + localDir + "\") 跳过上传")
 	}
 
 	// 模仿 rsync localDir不以'/'结尾,则创建尾目录
 	if localDir[len(localDir)-1] != '/' {
-		remoteDir = filepath.Join(remoteDir, filepath.Base(localDir))
+		remoteDir = filepath.ToSlash(filepath.Join(remoteDir, filepath.Base(localDir)))
 	}
-	// fmt.Println("remoteDir", remoteDir)
+	log.Println("sftp: UploadDir", localDir, remoteDir)
 
 	rootDst := strings.TrimSuffix(remoteDir, "/")
 	if c.IsFile(rootDst) {
@@ -230,14 +259,18 @@ func (c *Client) UploadDir(localDir string, remoteDir string) (err error) {
 		// it should exist and we might not even own it
 		if finalDst == remoteDir {
 			return nil
-			fmt.Println("skip", remoteDir, "--->", finalDst)
+			log.Println("sftp: ", remoteDir, "--->", finalDst)
 
 		}
 
 		if info.IsDir() {
-			c.MkdirAll(finalDst)
+			err := c.MkdirAll(finalDst)
+			if err != nil {
+				log.Println("sftp: MkdirAll", err)
+			}
+			// log.Println("MkdirAll", finalDst)
 			// err = c.SFTPClient.Mkdir(finalDst)
-			// fmt.Println(err)
+			// log.Println(err)
 			// if err := c.SFTPClient.Mkdir(finalDst); err != nil {
 			// 	// Do not consider it an error if the directory existed
 			// 	remoteFi, fiErr := c.SFTPClient.Lstat(finalDst)
@@ -295,7 +328,7 @@ func (c *Client) RemoveFile(remoteFile string) error {
 func (c *Client) RemoveDir(remoteDir string) error {
 	remoteFiles, err := c.SFTPClient.ReadDir(remoteDir)
 	if err != nil {
-		log.Printf("remove remote dir: %s err: %v\n", remoteDir, err)
+		log.Printf("sftp: remove remote dir: %s err: %v\n", remoteDir, err)
 		return err
 	}
 	for _, file := range remoteFiles {
@@ -307,7 +340,7 @@ func (c *Client) RemoveDir(remoteDir string) error {
 		}
 	}
 	c.SFTPClient.RemoveDirectory(remoteDir) //must empty dir to remove
-	log.Printf("remove remote dir: %s ok\n", remoteDir)
+	log.Printf("sftp: remove remote dir: %s ok\n", remoteDir)
 	return nil
 }
 
@@ -319,9 +352,11 @@ func (c *Client) RemoveAll(remoteDir string) error {
 
 //MkdirAll 创建目录，递归
 func (c *Client) MkdirAll(dirpath string) error {
-	parentDir := filepath.Dir(dirpath)
+
+	parentDir := filepath.ToSlash(filepath.Dir(dirpath))
 	_, err := c.SFTPClient.Stat(parentDir)
 	if err != nil {
+		// log.Println(err)
 		if err.Error() == "file does not exist" {
 			err := c.MkdirAll(parentDir)
 			if err != nil {
@@ -331,19 +366,9 @@ func (c *Client) MkdirAll(dirpath string) error {
 			return err
 		}
 	}
-	err = c.SFTPClient.Mkdir(dirpath)
+	err = c.SFTPClient.Mkdir(filepath.ToSlash(dirpath))
 	if err != nil {
 		return err
-	}
-	return nil
-}
-
-func MkdirAll(path string) error {
-	// 检测文件夹是否存在   若不存在  创建文件夹
-	if _, err := os.Stat(path); err != nil {
-		if os.IsNotExist(err) {
-			return os.MkdirAll(path, os.ModePerm)
-		}
 	}
 	return nil
 }
@@ -376,6 +401,15 @@ func (c *Client) IsDir(path string) bool {
 	return false
 }
 
+//Size 获取文件大小
+func (c *Client) Size(path string) int64 {
+	info, err := c.SFTPClient.Stat(path)
+	if err != nil {
+		return 0
+	}
+	return info.Size()
+}
+
 //IsFile 检查远程是否是个文件
 func (c *Client) IsFile(path string) bool {
 	info, err := c.SFTPClient.Stat(path)
@@ -396,4 +430,17 @@ func (c *Client) IsExist(path string) bool {
 
 	_, err := c.SFTPClient.Stat(path)
 	return err == nil
+}
+
+//Md5File 检查远程是文件是否存在
+func (c *Client) Md5File(path string) string {
+	if c.IsNotExist(path) {
+		return ""
+	}
+	b, err := c.Run("md5sum " + path)
+	if err != nil {
+		return ""
+	}
+	return string(bytes.Split(b, []byte{' '})[0])
+
 }
