@@ -18,6 +18,10 @@
 ## Example
 
 ### 在远程执行ssh命令
+提供3个方法: Run() Exec() Output() 
+1. Run() : 程序执行后,不再受执行者控制. 适用于启动服务端进程.
+2. Exec() : 在控制台同步实时输出程序的执行结果.
+3. Output() : 会等待程序执行完成后,输出执行结果,在需要对执行的结果进行操作时使用.
 ```go
 package main
 import (
@@ -32,7 +36,7 @@ func main() {
 	}
 	defer c.Close()
 
-	output, err := c.Exec("uptime")
+	output, err := c.Output("uptime")
 	if err != nil {
 		panic(err)
 	}

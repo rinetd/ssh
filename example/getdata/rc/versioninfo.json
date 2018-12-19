@@ -1,0 +1,43 @@
+{
+    "_FixedFileInfo": {
+        "FileVersion": {
+            "Major": 18,
+            "Minor": 7,
+            "Patch": 16,
+            "Build": 0
+        },
+        "ProductVersion": {
+            "Major": 2018,
+            "Minor": 7,
+            "Patch": 16,
+            "Build": 0
+        },
+        "FileFlagsMask": "3f",
+        "FileFlags ": "00",
+        "FileOS": "040004",
+        "FileType": "01",
+        "FileSubType": "00"
+    },
+    "StringFileInfo": {
+        "FileDescription": "履职考评系统升级",
+        "FileVersion": "2.1.0",
+        "ProductName": "履职考评系统",
+        "ProductVersion": "2018.7.1",
+        "LegalCopyright": "Copyright@pytool",
+        "OriginalFilename": "update.exe",
+        "Comments": " ",
+        "CompanyName": "Company",
+        "InternalName": "",
+        "LegalTrademarks": "",
+        "PrivateBuild": "",
+        "SpecialBuild": ""
+    },
+    "VarFileInfo": {
+        "Translation": {
+            "LangID": "0409",
+            "CharsetID": "04B0"
+        }
+    },
+    "IconPath": "deploy.ico",
+    "ManifestPath": ""
+}

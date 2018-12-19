@@ -17,6 +17,7 @@ const DefaultTimeout = 30 * time.Second
 type Client struct {
 	*Config
 	SSHClient  *ssh.Client
+	SSHSession *ssh.Session
 	SFTPClient *sftp.Client
 }
 
@@ -65,7 +66,13 @@ func New(cnf *Config) (client *Client, err error) {
 		return client, errors.New("Failed to conn sftp: " + err.Error())
 	}
 
-	return &Client{SSHClient: sshClient, SFTPClient: sftpClient}, nil
+	session, err := sshClient.NewSession()
+	if err != nil {
+		return nil, err
+	}
+	// defer session.Close()
+
+	return &Client{SSHClient: sshClient, SFTPClient: sftpClient, SSHSession: session}, nil
 }
 
 // NewClient 根据配置
@@ -149,4 +156,5 @@ func NewWithPrivateKey(Host, Port, User, Passphrase string) (client *Client, err
 func (c *Client) Close() {
 	c.SFTPClient.Close()
 	c.SSHClient.Close()
+	c.SSHSession.Close()
 }

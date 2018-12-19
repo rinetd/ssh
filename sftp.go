@@ -61,13 +61,13 @@ func (c *Client) downloadFile(remoteFile, local string) error {
 		rsum := c.Md5File(remoteFile)
 		ioutil.WriteFile(localFile+".md5", []byte(rsum), 755)
 		if FileExist(localFile) {
-			// 1. 检测远程是否存在
 			if rsum != "" {
 				lsum, _ := Md5File(localFile)
 				if lsum == rsum {
-					log.Println("sftp: 文件与本地一致，跳过上传！", localFile)
+					log.Println("sftp: 文件与本地一致，跳过下载！", localFile)
 					return nil
 				}
+				log.Println("sftp: 正在下载 ", localFile)
 			}
 		}
 	}
@@ -196,6 +196,7 @@ func (c *Client) UploadFile(localFile, remote string) error {
 				log.Println("sftp: 文件与本地一致，跳过上传！", localFile)
 				return nil
 			}
+			log.Println("sftp: 正在上传 ", localFile)
 		}
 	}
 
@@ -437,7 +438,7 @@ func (c *Client) Md5File(path string) string {
 	if c.IsNotExist(path) {
 		return ""
 	}
-	b, err := c.Run("md5sum " + path)
+	b, err := c.Output("md5sum " + path)
 	if err != nil {
 		return ""
 	}

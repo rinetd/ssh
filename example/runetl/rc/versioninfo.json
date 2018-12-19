@@ -1,0 +1,37 @@
+{
+    "FixedFileInfo": {
+        "FileVersion": {
+            "Major": 1,
+            "Minor": 2,
+            "Patch": 0,
+            "Build": 1
+        },
+        "FileFlagsMask": "3f",
+        "FileFlags ": "00",
+        "FileOS": "040004",
+        "FileType": "01",
+        "FileSubType": "00"
+    },
+    "StringFileInfo": { 
+        "Comments": "执行etl",
+        "CompanyName": "pytool",
+        "FileVersion": "",
+        "FileDescription": "执行数据同步etl",
+        "ProductName": "履职考评数据同步",
+        "ProductVersion": "2018.12.11",
+        "LegalCopyright": "Copyright@pytool",
+        "OriginalFilename": "etl.exe",
+        "InternalName": "",
+        "LegalTrademarks": "",
+        "PrivateBuild": "",
+        "SpecialBuild": ""
+    },
+    "VarFileInfo": {
+        "Translation": {
+            "LangID": "0409",
+            "CharsetID": "04B0"
+        }
+    },
+    "IconPath": "icon.ico",
+    "ManifestPath": ""
+}
