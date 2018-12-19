@@ -5,9 +5,25 @@ import (
 	"crypto"
 	"encoding/hex"
 	"io"
+	"log"
 	"os"
+	"path"
+	"path/filepath"
+
+	"github.com/mitchellh/go-homedir"
 )
 
+func KeyFile() string {
+
+	home, err := homedir.Dir()
+	if err != nil {
+		println(err.Error())
+		return ""
+	}
+	key := filepath.ToSlash(path.Join(home, ".ssh/id_rsa"))
+	log.Println(key)
+	return key
+}
 func FileExist(file string) bool {
 	if _, err := os.Stat(file); err != nil {
 		if os.IsNotExist(err) {

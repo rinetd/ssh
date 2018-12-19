@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"os"
 	"strconv"
 	"time"
 
@@ -35,8 +34,8 @@ func New(cnf *Config) (client *Client, err error) {
 
 	// 1. privite key file
 	if len(cnf.KeyFiles) == 0 {
-		keyPath := os.Getenv("HOME") + "/.ssh/id_rsa"
-		if auth, err := AuthWithPrivateKey(keyPath, cnf.Passphrase); err == nil {
+
+		if auth, err := AuthWithPrivateKey(KeyFile(), cnf.Passphrase); err == nil {
 			clientConfig.Auth = append(clientConfig.Auth, auth)
 		}
 	} else {
@@ -128,8 +127,7 @@ func NewWithPrivateKey(Host, Port, User, Passphrase string) (client *Client, err
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 	// 3. privite key file
-	keyPath := os.Getenv("HOME") + "/.ssh/id_rsa"
-	auth, err := AuthWithPrivateKey(keyPath, Passphrase)
+	auth, err := AuthWithPrivateKey(KeyFile(), Passphrase)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
