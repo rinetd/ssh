@@ -20,6 +20,26 @@ type Client struct {
 	SFTPClient *sftp.Client
 }
 
+func NewDSN() (client *Client) {
+	return nil
+}
+func Connect(cnf *Config) (client *Client, err error) {
+
+	return nil, nil
+}
+
+func (cnf *Config) Connect() (client *Client, err error) {
+
+	return nil, nil
+}
+
+// Close the underlying SSH connection
+func (c *Client) Close() {
+	c.SFTPClient.Close()
+	c.SSHClient.Close()
+	c.SSHSession.Close()
+}
+
 // New 创建SSH client
 func New(cnf *Config) (client *Client, err error) {
 	clientConfig := &ssh.ClientConfig{
@@ -33,15 +53,19 @@ func New(cnf *Config) (client *Client, err error) {
 	}
 
 	// 1. privite key file
-	if len(cnf.KeyFiles) == 0 {
-
-		if auth, err := AuthWithPrivateKey(KeyFile(), cnf.Passphrase); err == nil {
-			clientConfig.Auth = append(clientConfig.Auth, auth)
-		}
-	} else {
+	if len(cnf.KeyFiles) != 0 {
 		if auth, err := AuthWithPrivateKeys(cnf.KeyFiles, cnf.Passphrase); err == nil {
 			clientConfig.Auth = append(clientConfig.Auth, auth)
 		}
+
+	} else {
+		keypath := KeyFile()
+		if FileExist(keypath) {
+			if auth, err := AuthWithPrivateKey(keypath, cnf.Passphrase); err == nil {
+				clientConfig.Auth = append(clientConfig.Auth, auth)
+			}
+		}
+
 	}
 	// 2. 密码方式 放在key之后,这样密钥失败之后可以使用Password方式
 	if cnf.Password != "" {
@@ -148,11 +172,4 @@ func NewWithPrivateKey(Host, Port, User, Passphrase string) (client *Client, err
 	}
 	return &Client{SSHClient: sshClient, SFTPClient: sftpClient}, nil
 
-}
-
-// Close the underlying SSH connection
-func (c *Client) Close() {
-	c.SFTPClient.Close()
-	c.SSHClient.Close()
-	c.SSHSession.Close()
 }

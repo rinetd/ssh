@@ -13,7 +13,7 @@ func TestNewWithAgent(t *testing.T) {
 		return
 	}
 	defer c.Close()
-	b, err := c.Run("id")
+	b, err := c.Output("id")
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -28,7 +28,7 @@ func TestNewClient(t *testing.T) {
 		return
 	}
 	defer c.Close()
-	b, err := c.Run("id")
+	b, err := c.Output("id")
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -43,7 +43,7 @@ func TestNewWithPrivateKey(t *testing.T) {
 		return
 	}
 	defer c.Close()
-	b, err := c.Run("id")
+	b, err := c.Output("id")
 	if err != nil {
 		fmt.Println(err)
 		return

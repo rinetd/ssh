@@ -57,6 +57,7 @@ func (c *Client) downloadFile(remoteFile, local string) error {
 	} else {
 		localFile = local
 	}
+	localFile = filepath.ToSlash(localFile)
 	if c.Size(remoteFile) > 1000 {
 		rsum := c.Md5File(remoteFile)
 		ioutil.WriteFile(localFile+".md5", []byte(rsum), 755)

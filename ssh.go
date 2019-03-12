@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 )
 
@@ -17,7 +18,7 @@ func (c *Client) Run(cmd string) {
 	}
 	defer session.Close()
 
-	session.Start(cmd)
+	err = session.Start(cmd)
 	if err != nil {
 		fmt.Printf("exec command:%v error:%v\n", cmd, err)
 	}
@@ -28,6 +29,29 @@ func (c *Client) Run(cmd string) {
 		fmt.Printf(":Command finished with error: %v\n", err)
 	}
 	return
+}
+
+//Exec Execute cmd on the remote host and bind stderr and stdout
+func (c *Client) Exec1(cmd string) error {
+
+	// New Session
+	session, err := c.SSHClient.NewSession()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	// go func() {
+	// 	time.Sleep(2419200 * time.Second)
+	// 	conn.Close()
+	// }()
+
+	session.Stdout = os.Stdout
+	session.Stderr = os.Stderr
+	err = session.Run(cmd)
+	session.Close()
+	return nil
+
 }
 
 //Exec Execute cmd on the remote host and bind stderr and stdout

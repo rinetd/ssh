@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	config := ssh.Default.WithHost("192.168.5.157").WithPassword("HR2018!!")
+	config := ssh.Default.WithHost("15.14.12.153").WithPassword("HR2018!!")
 	// config.Host = "15.14.12.153"
 	client, err := ssh.New(config)
 	// client, err := ssh.NewClient("localhost", "22", "root", "ubuntu")

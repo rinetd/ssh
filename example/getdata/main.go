@@ -1,11 +1,15 @@
-package getdata
+package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path"
+	"strconv"
 	"time"
+
+	"github.com/yeka/zip"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -65,24 +69,37 @@ func main() {
 	// 用来测试的远程文件路径 和 本地文件夹
 	// fmt.Println(shizhi)
 	// var localDir = "."
-	date_dir := "db_" + time.Now().Format(FORMAT)
+	var dsts []string
+	tmp := os.TempDir()
+	date_dir := path.Join(tmp, "db_"+time.Now().Format(FORMAT))
 	os.Mkdir(date_dir, 0755)
 	var lzkpbi = "/docker/backup/" + time.Now().Format(FORMAT) + "_lzkp_bi_inner.zip"
 	Down(lzkpbi, date_dir)
+	dsts = append(dsts, path.Join(date_dir, time.Now().Format(FORMAT)+"_lzkp_bi_inner.zip"))
 	for _, n := range dbnames {
 		p := "/docker/backup/" + time.Now().Format(FORMAT) + "_" + n + "_inner.zip"
 		// fmt.Println(p)
 
 		Down(p, date_dir)
+		dsts = append(dsts, path.Join(date_dir, time.Now().Format(FORMAT)+"_"+n+"_inner.zip"))
+
 	}
+
+	zippass("", dsts...)
 	// fmt.Scanln()
+	for _, v := range dsts {
+		// fmt.Println(v)
+		// ioutil.WriteFile(v, []byte("aaa"), 755)
+		os.Remove(v)
+	}
+
 }
 
 func Down(src, dst string) {
-	fmt.Println(src, "数据正在复制中，请耐心等待...")
+	// fmt.Println(src, "数据正在复制中，请耐心等待...")
 	srcFile, err := sftpClient.Open(src)
 	if err != nil {
-		log.Println(err)
+		// log.Println(err)
 		return
 	}
 	defer srcFile.Close()
@@ -90,16 +107,41 @@ func Down(src, dst string) {
 	var localFileName = path.Base(src)
 	dstFile, err := os.Create(path.Join(dst, localFileName))
 	if err != nil {
-		log.Println(err)
+		// log.Println(err)
 		return
 	}
 	defer dstFile.Close()
 
 	if _, err = srcFile.WriteTo(dstFile); err != nil {
-		log.Println(err)
+		// log.Println(err)
 		return
 	}
 
-	fmt.Println(src, "数据复制完成!")
+	// fmt.Println(src, "数据复制完成!")
 
+}
+
+func zippass(dst string, src ...string) {
+	fzip, err := os.Create(`D:/待测试数据.zip`)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	zipw := zip.NewWriter(fzip)
+	defer zipw.Close()
+	for i, n := range src {
+		w, err := zipw.Encrypt(strconv.Itoa(i), `hangruan2017`, zip.AES256Encryption)
+		if err != nil {
+			log.Fatal(err)
+		}
+		f, err := os.Open(n)
+		if err != nil {
+			return
+		}
+
+		_, err = io.Copy(w, f)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	zipw.Flush()
 }
